@@ -44,6 +44,7 @@ EMOTION_LABELS = ["sadness", "joy", "love", "anger", "fear", "surprise"]
 
 model = None
 tokenizer = None
+model_load_error = None
 
 # ============================================================
 # MODEL & TOKENIZER LOADER
@@ -53,6 +54,7 @@ tokenizer = None
 def load_model_and_tokenizer():
     global model
     global tokenizer
+    global model_load_error
 
     if model is not None and tokenizer is not None:
         return True
@@ -60,23 +62,37 @@ def load_model_and_tokenizer():
     try:
         if model is None:
             print(f"Loading emotion model from {MODEL_PATH}...")
-            # Use compile=False to save significant memory and speed up load
-            model = load_model(MODEL_PATH, compile=False)
-            print("Model loaded successfully.")
+            if not MODEL_PATH.exists():
+                raise FileNotFoundError(f"Model file does not exist at {MODEL_PATH}")
+
+            try:
+                from tensorflow.keras.models import load_model as tf_load_model
+                model = tf_load_model(MODEL_PATH, compile=False)
+                print("Model loaded successfully using tensorflow.keras.")
+            except Exception as e1:
+                print(f"tf.keras load failed ({e1}), trying standalone keras...")
+                import keras
+                model = keras.models.load_model(MODEL_PATH, compile=False)
+                print("Model loaded successfully using standalone keras.")
 
         if tokenizer is None:
             print(f"Loading tokenizer from {TOKENIZER_PATH}...")
+            if not TOKENIZER_PATH.exists():
+                raise FileNotFoundError(f"Tokenizer file does not exist at {TOKENIZER_PATH}")
+
             with open(TOKENIZER_PATH, "rb") as file:
                 tokenizer = pickle.load(file)
             print("Tokenizer loaded successfully.")
 
+        model_load_error = None
         print("Emotion AI is ready.")
         return True
 
     except Exception as e:
-        print(f"ERROR while loading model/tokenizer: {e}")
         import traceback
-        traceback.print_exc()
+        err_msg = f"{e}\n{traceback.format_exc()}"
+        print(f"ERROR while loading model/tokenizer: {err_msg}")
+        model_load_error = str(e)
         return False
 
 
@@ -165,6 +181,7 @@ class PredictionResponse(BaseModel):
 class HealthResponse(BaseModel):
     status: str
     model_loaded: bool
+    error: str | None = None
 
 
 # ============================================================
@@ -195,7 +212,8 @@ async def health_check():
 
     return HealthResponse(status="Server is running",
                           model_loaded=model is not None
-                          and tokenizer is not None)
+                          and tokenizer is not None,
+                          error=model_load_error)
 
 
 
