@@ -59,8 +59,10 @@ from tensorflow.keras.layers import InputLayer
 class FixedInputLayer(InputLayer):
 
     def __init__(self, *args, **kwargs):
-        kwargs.pop("batch_shape", None)
+        batch_shape = kwargs.pop("batch_shape", None)
         kwargs.pop("optional", None)
+        if batch_shape is not None and "input_shape" not in kwargs:
+            kwargs["input_shape"] = batch_shape[1:]
         super().__init__(*args, **kwargs)
 
 
