@@ -51,6 +51,17 @@ model_load_error = None
 # ============================================================
 
 
+from tensorflow.keras.layers import InputLayer
+
+
+class FixedInputLayer(InputLayer):
+
+    def __init__(self, *args, **kwargs):
+        kwargs.pop("batch_shape", None)
+        kwargs.pop("optional", None)
+        super().__init__(*args, **kwargs)
+
+
 def load_model_and_tokenizer():
     global model
     global tokenizer
@@ -67,12 +78,12 @@ def load_model_and_tokenizer():
 
             try:
                 from tensorflow.keras.models import load_model as tf_load_model
-                model = tf_load_model(MODEL_PATH, compile=False)
+                model = tf_load_model(MODEL_PATH, compile=False, custom_objects={"InputLayer": FixedInputLayer})
                 print("Model loaded successfully using tensorflow.keras.")
             except Exception as e1:
                 print(f"tf.keras load failed ({e1}), trying standalone keras...")
                 import keras
-                model = keras.models.load_model(MODEL_PATH, compile=False)
+                model = keras.models.load_model(MODEL_PATH, compile=False, custom_objects={"InputLayer": FixedInputLayer})
                 print("Model loaded successfully using standalone keras.")
 
         if tokenizer is None:
