@@ -6,6 +6,8 @@ os.environ["OMP_NUM_THREADS"] = "1"
 os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
 os.environ["TF_NUM_INTEROP_THREADS"] = "1"
 
+import asyncio
+import urllib.request
 from contextlib import asynccontextmanager
 from pathlib import Path
 import re
@@ -135,6 +137,28 @@ def clean_text(text: str) -> str:
     return text.strip()
 
 
+async def self_ping_loop():
+    """Background task that periodically pings the health endpoint to prevent Render from sleeping."""
+    await asyncio.sleep(15)  # Wait 15 seconds after startup
+    while True:
+        try:
+            render_url = os.environ.get("RENDER_EXTERNAL_URL", "https://predicting-emotions-of-text-1.onrender.com")
+            ping_url = f"{render_url}/api/health"
+            print(f"[KeepAlive] Sending heartbeat ping to {ping_url}...")
+
+            def ping():
+                req = urllib.request.Request(ping_url, headers={"User-Agent": "RenderKeepAlive/1.0"})
+                with urllib.request.urlopen(req, timeout=10) as response:
+                    return response.getcode()
+
+            status_code = await asyncio.to_thread(ping)
+            print(f"[KeepAlive] Heartbeat ping response: {status_code}")
+        except Exception as e:
+            print(f"[KeepAlive] Heartbeat ping notice: {e}")
+
+        await asyncio.sleep(600)  # Ping every 10 minutes (600 seconds)
+
+
 # ============================================================
 # LOAD MODEL + TOKENIZER LIFESPAN
 # ============================================================
@@ -143,7 +167,9 @@ def clean_text(text: str) -> str:
 @asynccontextmanager
 async def lifespan(app: FastAPI):
     load_model_and_tokenizer()
+    ping_task = asyncio.create_task(self_ping_loop())
     yield
+    ping_task.cancel()
     print("Shutting down Emotion AI...")
 
 
@@ -229,6 +255,19 @@ async def health_check():
                           model_loaded=model is not None
                           and tokenizer is not None,
                           error=model_load_error)
+
+
+@app.get("/api/health")
+async def api_health():
+    if model is None or tokenizer is None:
+        load_model_and_tokenizer()
+
+    return {
+        "status": "online",
+        "provider": "Emotion AI",
+        "model_loaded": model is not None and tokenizer is not None,
+        "models": ["BiGRU-Emotion-v1.0"]
+    }
 
 
 
