@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from pydantic import BaseModel, Field
-from keras.models import load_model
+from tensorflow.keras.models import load_model
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 # ============================================================
@@ -72,23 +72,28 @@ async def lifespan(app: FastAPI):
     global tokenizer
 
     try:
-        print("Loading emotion model...")
+        print(f"Loading emotion model from {MODEL_PATH}...")
 
-        model = load_model(MODEL_PATH)
+        try:
+            model = load_model(MODEL_PATH)
+        except Exception as e_compile:
+            print(f"Standard load failed ({e_compile}), loading with compile=False...")
+            model = load_model(MODEL_PATH, compile=False)
 
         print("Model loaded successfully.")
 
-        print("Loading tokenizer...")
+        print(f"Loading tokenizer from {TOKENIZER_PATH}...")
 
         with open(TOKENIZER_PATH, "rb") as file:
             tokenizer = pickle.load(file)
 
         print("Tokenizer loaded successfully.")
-
         print("Emotion AI is ready.")
 
     except Exception as e:
         print(f"ERROR while loading model/tokenizer: {e}")
+        import traceback
+        traceback.print_exc()
 
         model = None
         tokenizer = None
