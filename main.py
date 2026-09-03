@@ -26,7 +26,9 @@ from tensorflow.keras.preprocessing.sequence import pad_sequences
 
 BASE_DIR = Path(__file__).resolve().parent
 
-MODEL_PATH = BASE_DIR / "Artifacts" / "emotion_bigru_model.keras"
+MODEL_PATH_H5 = BASE_DIR / "Artifacts" / "emotion_bigru_model.h5"
+MODEL_PATH_KERAS = BASE_DIR / "Artifacts" / "emotion_bigru_model.keras"
+MODEL_PATH = MODEL_PATH_H5 if MODEL_PATH_H5.exists() else MODEL_PATH_KERAS
 TOKENIZER_PATH = BASE_DIR / "Artifacts" / "emotion_tokenizer.pkl"
 STATIC_DIR = BASE_DIR / "static"
 
