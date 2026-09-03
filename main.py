@@ -1,3 +1,11 @@
+import os
+
+# Limit TensorFlow memory and thread overhead for low-memory cloud hosts (e.g., Render free tier)
+os.environ["TF_CPP_MIN_LOG_LEVEL"] = "2"
+os.environ["OMP_NUM_THREADS"] = "1"
+os.environ["TF_NUM_INTRAOP_THREADS"] = "1"
+os.environ["TF_NUM_INTEROP_THREADS"] = "1"
+
 from contextlib import asynccontextmanager
 from pathlib import Path
 import re
@@ -38,6 +46,41 @@ model = None
 tokenizer = None
 
 # ============================================================
+# MODEL & TOKENIZER LOADER
+# ============================================================
+
+
+def load_model_and_tokenizer():
+    global model
+    global tokenizer
+
+    if model is not None and tokenizer is not None:
+        return True
+
+    try:
+        if model is None:
+            print(f"Loading emotion model from {MODEL_PATH}...")
+            # Use compile=False to save significant memory and speed up load
+            model = load_model(MODEL_PATH, compile=False)
+            print("Model loaded successfully.")
+
+        if tokenizer is None:
+            print(f"Loading tokenizer from {TOKENIZER_PATH}...")
+            with open(TOKENIZER_PATH, "rb") as file:
+                tokenizer = pickle.load(file)
+            print("Tokenizer loaded successfully.")
+
+        print("Emotion AI is ready.")
+        return True
+
+    except Exception as e:
+        print(f"ERROR while loading model/tokenizer: {e}")
+        import traceback
+        traceback.print_exc()
+        return False
+
+
+# ============================================================
 # TEXT PREPROCESSING
 # ============================================================
 
@@ -62,44 +105,14 @@ def clean_text(text: str) -> str:
 
 
 # ============================================================
-# LOAD MODEL + TOKENIZER
+# LOAD MODEL + TOKENIZER LIFESPAN
 # ============================================================
 
 
 @asynccontextmanager
 async def lifespan(app: FastAPI):
-    global model
-    global tokenizer
-
-    try:
-        print(f"Loading emotion model from {MODEL_PATH}...")
-
-        try:
-            model = load_model(MODEL_PATH)
-        except Exception as e_compile:
-            print(f"Standard load failed ({e_compile}), loading with compile=False...")
-            model = load_model(MODEL_PATH, compile=False)
-
-        print("Model loaded successfully.")
-
-        print(f"Loading tokenizer from {TOKENIZER_PATH}...")
-
-        with open(TOKENIZER_PATH, "rb") as file:
-            tokenizer = pickle.load(file)
-
-        print("Tokenizer loaded successfully.")
-        print("Emotion AI is ready.")
-
-    except Exception as e:
-        print(f"ERROR while loading model/tokenizer: {e}")
-        import traceback
-        traceback.print_exc()
-
-        model = None
-        tokenizer = None
-
+    load_model_and_tokenizer()
     yield
-
     print("Shutting down Emotion AI...")
 
 
@@ -177,10 +190,13 @@ async def home():
 
 @app.get("/health", response_model=HealthResponse)
 async def health_check():
+    if model is None or tokenizer is None:
+        load_model_and_tokenizer()
 
     return HealthResponse(status="Server is running",
                           model_loaded=model is not None
                           and tokenizer is not None)
+
 
 
 # ============================================================
@@ -194,6 +210,9 @@ async def predict_emotion(request: PredictionRequest):
     # --------------------------------------------------------
     # Check model
     # --------------------------------------------------------
+
+    if model is None or tokenizer is None:
+        load_model_and_tokenizer()
 
     if model is None:
         raise HTTPException(status_code=503,
