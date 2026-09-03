@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>Emotion AI — Understand what words feel like</title>
+<meta name="description" content="Emotion AI analyzes the emotional signal behind your words using a BiGRU neural network." />
+<link rel="stylesheet" href="/static/style.css" />
+</head>
+<body>
+
+  <!-- Ambient background -->
+  <div class="atmosphere" aria-hidden="true">
+    <div class="orb orb-a"></div>
+    <div class="orb orb-b"></div>
+    <div class="grain"></div>
+  </div>
+
+  <!-- Header -->
+  <header class="topbar">
+    <div class="topbar-inner glass">
+      <div class="brand">
+        <svg class="brand-mark" viewBox="0 0 32 32" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="16" cy="16" r="15" stroke="url(#markGrad)" stroke-width="1.2"/>
+          <path d="M16 8.5C16 8.5 19 12.8 19 16C19 19.2 17.6 21 16 21C14.4 21 13 19.2 13 16C13 12.8 16 8.5 16 8.5Z" fill="url(#markGrad)"/>
+          <defs>
+            <linearGradient id="markGrad" x1="6" y1="6" x2="26" y2="26" gradientUnits="userSpaceOnUse">
+              <stop offset="0" stop-color="#9DB4FF"/>
+              <stop offset="1" stop-color="#6C8CFF"/>
+            </linearGradient>
+          </defs>
+        </svg>
+        <div class="brand-text">
+          <span class="brand-name">Emotion AI</span>
+          <span class="brand-sub">BiGRU Engine</span>
+        </div>
+      </div>
+
+      <div class="status" id="statusIndicator" role="status" aria-live="polite">
+        <span class="status-dot" id="statusDot"></span>
+        <span class="status-label" id="statusLabel">Connecting…</span>
+      </div>
+    </div>
+  </header>
+
+  <main class="page">
+
+    <!-- Hero -->
+    <section class="hero">
+      <p class="eyebrow">Deep learning · BiGRU · Real-time inference</p>
+      <h1 class="hero-title">Understand<br>what words feel like.</h1>
+      <p class="hero-copy">Emotion AI reads the feeling behind your text and reflects it back — instantly, quietly, precisely.</p>
+    </section>
+
+    <!-- Input panel -->
+    <section class="panel input-panel glass" aria-labelledby="inputLabel">
+      <div class="panel-head">
+        <label id="inputLabel" for="textInput" class="field-label">Your message</label>
+        <span class="char-counter" id="charCounter">0 / 2000</span>
+      </div>
+
+      <div class="textarea-shell">
+        <textarea
+          id="textInput"
+          maxlength="2000"
+          rows="4"
+          placeholder="Write something you're feeling…"
+          aria-describedby="charCounter"
+        ></textarea>
+      </div>
+
+      <div class="chips" id="chipRow" role="group" aria-label="Example messages">
+        <button type="button" class="chip">I feel so excited about my new opportunity.</button>
+        <button type="button" class="chip">I feel sad and miss the people I used to spend time with.</button>
+        <button type="button" class="chip">I feel amazed, I can't believe this actually happened!</button>
+        <button type="button" class="chip">I feel like everything is going wrong today.</button>
+      </div>
+
+      <div class="panel-footer">
+        <button type="button" class="cta" id="analyzeBtn">
+          <span class="cta-label">Analyze Emotion</span>
+          <svg class="cta-icon" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <path d="M4 10H16M16 10L11 5M16 10L11 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+          <span class="cta-spinner" aria-hidden="true"></span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Results -->
+    <section class="results" id="resultsSection" aria-live="polite">
+
+      <div class="results-empty" id="resultsEmpty">
+        <svg viewBox="0 0 48 48" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+          <circle cx="24" cy="24" r="22" stroke="currentColor" stroke-width="1" stroke-dasharray="2 5"/>
+          <circle cx="24" cy="24" r="3" fill="currentColor"/>
+        </svg>
+        <p>Your analysis will appear here.</p>
+      </div>
+
+      <div class="results-body" id="resultsBody" hidden>
+
+        <p class="section-label">AI Analysis</p>
+
+        <div class="panel result-card glass" id="resultCard">
+          <div class="result-ring-wrap">
+            <svg class="result-ring" viewBox="0 0 160 160" aria-hidden="true">
+              <circle class="ring-track" cx="80" cy="80" r="70" fill="none" stroke-width="6"/>
+              <circle class="ring-progress" id="ringProgress" cx="80" cy="80" r="70" fill="none" stroke-width="6" stroke-linecap="round"/>
+            </svg>
+            <div class="result-ring-center">
+              <span class="result-emoji" id="resultEmoji">🙂</span>
+              <span class="result-confidence" id="resultConfidence">—</span>
+            </div>
+          </div>
+          <p class="result-emotion" id="resultEmotion">—</p>
+          <p class="result-caption">Confidence</p>
+        </div>
+
+        <p class="section-label">Emotion Breakdown</p>
+        <div class="panel breakdown-panel glass">
+          <ul class="breakdown-list" id="breakdownList"></ul>
+        </div>
+
+        <p class="section-label">AI Insight</p>
+        <div class="panel insight-panel glass">
+          <p class="insight-text" id="insightText">—</p>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- Footer / model status -->
+    <footer class="model-footer">
+      <div class="model-status">
+        <span class="status-dot small" id="footerDot"></span>
+        <span id="footerStatus">Model status unknown</span>
+      </div>
+      <p class="model-caption">BiGRU Emotion Classification Engine · 6 emotions · Real-time inference</p>
+    </footer>
+
+  </main>
+
+  <!-- Toasts -->
+  <div class="toast-stack" id="toastStack" aria-live="assertive"></div>
+
+  <script src="/static/script.js"></script>
+</body>
+</html>
